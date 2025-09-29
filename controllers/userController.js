@@ -701,7 +701,6 @@ const loginWithCode = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
-  // Find user Login Token
   const userToken = await Token.findOne({
     userId: user.id,
     expiresAt: { $gt: Date.now() },

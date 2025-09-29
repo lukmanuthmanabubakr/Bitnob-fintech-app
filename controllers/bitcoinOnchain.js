@@ -13,13 +13,12 @@ const generateBitcoinAddress = asyncHandler(async (req, res) => {
   }
 
   try {
-    // ✅ Check if wallet address already exists for this user
     const existingAddress = await BitcoinAddress.findOne({ userId: user._id });
     if (existingAddress) {
       return res.status(400).json({
         success: false,
         message: "Wallet address already exists for this user",
-        address: existingAddress, // send back existing address if you want
+        address: existingAddress, 
       });
     }
 
