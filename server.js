@@ -6,27 +6,25 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const userRoute = require("./routes/userRoute");
 const bitcoinOnchainRoute = require("./routes/bitcoinOnchain");
+const lightningRoute = require("./routes/lightning");
 const errorHandler = require("./middleware/errorMiddleware");
 
 const app = express();
 
-// Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(bodyParser.json());
 
-// Improved CORS Configuration
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://planitfy.vercel.app"], // Frontend URLs
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Allowed methods
-    credentials: true, // Allows cookies
-    allowedHeaders: ["Content-Type", "Authorization"], // Explicit allowed headers
+    origin: ["http://localhost:3000", "https://planitfy.vercel.app"], 
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], 
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Security Headers
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
@@ -41,20 +39,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
 app.use("/api/auth", userRoute);
 app.use("/api/bitcoin", bitcoinOnchainRoute);
+app.use("/api/lightning", lightningRoute);
 
 app.get("/", (req, res) => {
   res.send("Home Page");
 });
 
-// Error Handler Middleware
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 7000;
 
-// Database Connection and Server Start
 mongoose
   .connect(process.env.MONGO_DB_URL)
   .then(() => {

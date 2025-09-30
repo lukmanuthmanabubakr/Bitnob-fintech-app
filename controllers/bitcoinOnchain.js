@@ -5,31 +5,29 @@ const BitcoinAddress = require("../models/bitcoinAddress");
 const User = require("../models/userModel");
 
 const generateBitcoinAddress = asyncHandler(async (req, res) => {
-  // Get user
   const user = await User.findById(req.user._id);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
   }
 
-  try {
-    const existingAddress = await BitcoinAddress.findOne({ userId: user._id });
-    if (existingAddress) {
-      return res.status(400).json({
-        success: false,
-        message: "Wallet address already exists for this user",
-        address: existingAddress, 
-      });
-    }
+  // Destructure with default values
+  const {
+    label = "temporary wallet",
+    formatType = "bip21",
+    amount = "regular",
+  } = req.body || {};
 
+  try {
     const payload = {
-      label: label || "temporary wallet",
+      label,
       customerEmail: user.email,
-      formatType: formatType || "bip21",
-      amount: amount || "regular",
+      formatType,
+      amount,
     };
 
-    // Call Bitnob API to generate address
+    console.log("📤 Sending payload to Bitnob:", payload);
+
     const response = await bitnobAPI.post("/addresses/generate", payload);
 
     if (!response.data.status) {
@@ -39,7 +37,6 @@ const generateBitcoinAddress = asyncHandler(async (req, res) => {
 
     const addrData = response.data.data;
 
-    // Save address in DB
     const newAddress = await BitcoinAddress.create({
       userId: user._id,
       address: addrData.address,
@@ -73,7 +70,6 @@ const sendBitcoin = asyncHandler(async (req, res) => {
     throw new Error("Amount and address are required");
   }
 
-  // Get user from auth
   const user = await User.findById(req.user._id);
   if (!user) {
     res.status(404);
@@ -96,11 +92,9 @@ const sendBitcoin = asyncHandler(async (req, res) => {
       priorityLevel: priorityLevel || "regular",
     };
 
-    // Call Bitnob API
     const response = await bitnobAPI.post("/wallets/send_bitcoin", payload);
     const txData = response.data.data;
 
-    // Save in DB
     const newTransaction = await BitcoinTransaction.create({
       userId: req.user._id,
       reference: txData.reference,
@@ -135,7 +129,6 @@ const sendBitcoin = asyncHandler(async (req, res) => {
 
 const listBitcoinAddresses = asyncHandler(async (req, res) => {
   try {
-    // Call Bitnob API
     const response = await bitnobAPI.get("/addresses");
 
     if (!response.data.status) {
@@ -149,7 +142,7 @@ const listBitcoinAddresses = asyncHandler(async (req, res) => {
       success: true,
       message: "Addresses fetched successfully",
       addresses,
-      meta: response.data.data.meta, // pagination info
+      meta: response.data.data.meta,
     });
   } catch (error) {
     console.error(
@@ -164,8 +157,33 @@ const listBitcoinAddresses = asyncHandler(async (req, res) => {
   }
 });
 
+const getRecommendedFees = asyncHandler(async (req, res) => {
+  try {
+    const response = await bitnobAPI.get("/wallets/recommended-fees/btc");
+
+    const fees = response.data.data;
+
+    res.status(200).json({
+      success: true,
+      message: "Recommended Bitcoin fees retrieved successfully",
+      fees,
+    });
+  } catch (error) {
+    console.error(
+      "Error fetching recommended BTC fees:",
+      error.response?.data || error.message
+    );
+    res.status(error.response?.status || 500).json({
+      success: false,
+      message: "Failed to fetch recommended BTC fees",
+      error: error.response?.data || error.message,
+    });
+  }
+});
+
 module.exports = {
   sendBitcoin,
   generateBitcoinAddress,
-  listBitcoinAddresses
+  listBitcoinAddresses,
+  getRecommendedFees,
 };
