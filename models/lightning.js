@@ -11,6 +11,7 @@ const lightning = new mongoose.Schema(
     request: { type: String, required: true },
     tokens: { type: Number, required: true },
     status: { type: String, default: "pending" },
+    expiresAt: { type: Date },
   },
   { timestamps: true }
 );
